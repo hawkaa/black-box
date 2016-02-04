@@ -3,6 +3,7 @@ unit Hawk.Profiling.MemoryMeasurer;
 interface
 
 uses
+  FastMM4,
   Generics.Collections;
 
 type
@@ -75,17 +76,27 @@ uses
 
   // from http://stackoverflow.com/questions/437683/how-to-get-the-memory-used-by-a-delphi-program 
   function CMemoryMeasurer.GetCurrentMemoryUsage : Int64;
-  var
-    l_state: TMemoryManagerState;
-    l_blockTypeState: TSmallBlockTypeState;
-  begin
-    GetMemoryManagerState(l_state); 
-    result := l_state.TotalAllocatedMediumBlockSize + l_state.TotalAllocatedLargeBlockSize;
-    for l_blockTypeState in l_state.SmallBlockTypeStates do
-    begin
-      result := result + l_blockTypeState.UseableBlockSize * l_blockTypeState.AllocatedBlockCount;
-    end;
+  var  
+    lMemoryState: TMemoryManagerState;  
+    lIndex: Integer;  
+  begin  
+    Result := 0;  
+
+    // get the state  
+    GetMemoryManagerState(lMemoryState);  
+
+    with lMemoryState do begin  
+      // small blocks  
+      for lIndex := Low(SmallBlockTypeStates) to High(SmallBlockTypeStates) do  
+        Inc(Result,  
+            SmallBlockTypeStates[lIndex].AllocatedBlockCount *  
+            SmallBlockTypeStates[lIndex].UseableBlockSize);  
+
+      // medium blocks  
+      Inc(Result, TotalAllocatedMediumBlockSize);  
+
+      // large blocks  
+      Inc(Result, TotalAllocatedLargeBlockSize);  
+    end;  
   end;
-
-
 end.
